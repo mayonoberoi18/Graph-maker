@@ -1,111 +1,137 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
-# Page configuration
-st.set_page_config(page_title="Graph Maker", page_icon="📊", layout="wide")
-st.title("📊 Smart Graph Maker")
-st.markdown("**Just tell me the units of X and Y axis** — I'll make different types of graphs for you!")
+# Page setup
+st.set_page_config(page_title="Easy Graph Maker", page_icon="📊", layout="wide")
+st.title("📊 Easy Graph Maker")
+st.markdown("### Just tell me the X and Y axis units and add your data — I'll create beautiful graphs for you!")
 
-# Sidebar for graph settings
-st.sidebar.header("Graph Settings")
+# Instructions
+with st.expander("📋 How to Use This App (Super Simple)", expanded=True):
+    st.markdown("""
+    1. **Enter X-axis Label** (e.g., Time (seconds), Month, Student Name)
+    2. **Enter Y-axis Label** (e.g., Temperature (°C), Sales (₹), Height (cm))
+    3. Choose how to add data:
+       - Click **"Load Sample Data"** to try immediately
+       - Type data manually
+       - Or **upload** your CSV/Excel file
+    4. Select the Graph Type you like
+    5. Watch the graph appear instantly!
 
-# X and Y axis labels (units)
-x_label = st.sidebar.text_input("X-Axis Label (Unit)", "Time (seconds)")
-y_label = st.sidebar.text_input("Y-Axis Label (Unit)", "Temperature (°C)")
+    **Tip:** Hover over the graph to see values. You can zoom and download the image too!
+    """)
 
-# Graph type selection
+# Sidebar - Axis Labels and Graph Type
+st.sidebar.header("🎯 Graph Settings")
+
+x_label = st.sidebar.text_input("X-Axis Label (Unit)", value="Time (hours)", help="Example: Time (seconds), Category, Month")
+y_label = st.sidebar.text_input("Y-Axis Label (Unit)", value="Temperature (°C)", help="Example: Sales (₹), Speed (km/h), Score")
+
 graph_type = st.sidebar.selectbox(
     "Choose Graph Type",
     ["Line Chart", "Bar Chart", "Scatter Plot", "Area Chart", 
-     "Histogram", "Pie Chart", "Box Plot"]
+     "Histogram", "Box Plot", "Pie Chart"]
 )
 
-# Data input method
-data_input = st.radio("How do you want to enter data?", 
-                      ["Manual Entry", "Paste from Excel/CSV"])
+# Main area - Data Input
+st.subheader("📥 Add Your Data")
 
-if data_input == "Manual Entry":
-    st.subheader("Enter Your Data")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        x_data = st.text_area(f"Enter {x_label} values (one per line)", 
-                             "1\n2\n3\n4\n5\n6")
-    with col2:
-        y_data = st.text_area(f"Enter {y_label} values (one per line)", 
-                             "10\n25\n35\n50\n65\n80")
+col1, col2 = st.columns([1, 1])
 
+with col1:
+    if st.button("📊 Load Sample Data (Try Now)"):
+        sample_data = pd.DataFrame({
+            x_label: [1, 2, 3, 4, 5, 6, 7, 8],
+            y_label: [10, 25, 35, 48, 62, 75, 80, 95]
+        })
+        st.session_state.df = sample_data
+        st.success("Sample data loaded! Change labels above if needed.")
+
+with col2:
+    uploaded_file = st.file_uploader("Upload your CSV or Excel file", type=["csv", "xlsx", "xls"])
+
+# Data entry options
+data_method = st.radio("How do you want to enter data?", 
+                       ["Use Sample / Uploaded Data", "Manual Entry (Table)"], horizontal=True)
+
+if uploaded_file is not None:
     try:
-        x_values = [float(x.strip()) for x in x_data.strip().split("\n") if x.strip()]
-        y_values = [float(y.strip()) for y in y_data.strip().split("\n") if y.strip()]
-        
-        if len(x_values) != len(y_values):
-            st.error("Number of X and Y values must be the same!")
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
         else:
-            df = pd.DataFrame({x_label: x_values, y_label: y_values})
-            
-    except:
-        st.error("Please enter valid numbers only.")
+            df = pd.read_excel(uploaded_file)
+        st.session_state.df = df
+        st.success(f"File uploaded successfully! Columns: {list(df.columns)}")
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
 
+if data_method == "Manual Entry (Table)":
+    st.info("Edit the table below directly")
+    if 'df' not in st.session_state:
+        st.session_state.df = pd.DataFrame({
+            x_label: [1, 2, 3, 4, 5],
+            y_label: [10, 20, 30, 40, 50]
+        })
+    edited_df = st.data_editor(st.session_state.df, num_rows="dynamic", use_container_width=True)
+    st.session_state.df = edited_df
 else:
-    st.subheader("Paste your data (CSV format)")
-    pasted_data = st.text_area("Paste CSV data here (first row = headers)", 
-                               "Time,Temperature\n1,10\n2,25\n3,35\n4,50\n5,65")
-    try:
-        df = pd.read_csv(pd.compat.StringIO(pasted_data))
-        x_label = df.columns[0]
-        y_label = df.columns[1] if len(df.columns) > 1 else "Value"
-    except:
-        st.error("Invalid CSV format. First line should be headers.")
+    if 'df' in st.session_state:
+        st.dataframe(st.session_state.df, use_container_width=True)
+    else:
+        st.info("Click 'Load Sample Data' or upload a file to begin.")
 
 # Generate Graph
-if 'df' in locals() and not df.empty:
-    st.subheader(f"{graph_type} - {y_label} vs {x_label}")
+if 'df' in st.session_state and not st.session_state.df.empty:
+    df = st.session_state.df
     
-    if graph_type == "Line Chart":
-        fig = px.line(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
-    elif graph_type == "Bar Chart":
-        fig = px.bar(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
-    elif graph_type == "Scatter Plot":
-        fig = px.scatter(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
-    elif graph_type == "Area Chart":
-        fig = px.area(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
-    elif graph_type == "Histogram":
-        fig = px.histogram(df, x=y_label, title=f"Distribution of {y_label}")
-    elif graph_type == "Pie Chart":
-        # For pie, we need categories - using first column as labels if possible
-        if len(df.columns) >= 2:
-            fig = px.pie(df, names=x_label, values=y_label, title=f"Distribution")
-        else:
-            st.warning("Pie chart needs categorical data.")
-            fig = px.bar(df, x=x_label, y=y_label)
-    elif graph_type == "Box Plot":
-        fig = px.box(df, y=y_label, title=f"Box Plot of {y_label}")
+    # Auto-detect columns if labels don't match
+    x_col = df.columns[0] if x_label not in df.columns else x_label
+    y_col = df.columns[1] if len(df.columns) > 1 and y_label not in df.columns else y_label
     
-    fig.update_layout(
-        xaxis_title=x_label,
-        yaxis_title=y_label,
-        height=600
-    )
+    st.subheader(f"📈 Your {graph_type}")
     
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Show data table
-    st.subheader("Your Data")
-    st.dataframe(df, use_container_width=True)
-    
-    # Download options
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Data as CSV",
-        data=csv,
-        file_name="graph_data.csv",
-        mime="text/csv"
-    )
+    try:
+        if graph_type == "Line Chart":
+            fig = px.line(df, x=x_col, y=y_col, title=f"{y_label} vs {x_label}")
+        elif graph_type == "Bar Chart":
+            fig = px.bar(df, x=x_col, y=y_col, title=f"{y_label} vs {x_label}")
+        elif graph_type == "Scatter Plot":
+            fig = px.scatter(df, x=x_col, y=y_col, title=f"{y_label} vs {x_label}")
+        elif graph_type == "Area Chart":
+            fig = px.area(df, x=x_col, y=y_col, title=f"{y_label} vs {x_label}")
+        elif graph_type == "Histogram":
+            fig = px.histogram(df, x=y_col, title=f"Distribution of {y_label}")
+        elif graph_type == "Box Plot":
+            fig = px.box(df, y=y_col, title=f"Box Plot of {y_label}")
+        elif graph_type == "Pie Chart":
+            if len(df.columns) >= 2:
+                fig = px.pie(df, names=x_col, values=y_col, title="Pie Chart")
+            else:
+                fig = px.bar(df, x=x_col, y=y_col)
+        
+        fig.update_layout(
+            xaxis_title=x_label,
+            yaxis_title=y_label,
+            height=600,
+            title_font_size=20
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Download buttons
+        col_a, col_b = st.columns(2)
+        with col_a:
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Download Data as CSV", csv, "my_graph_data.csv", "text/csv")
+        with col_b:
+            st.caption("💡 Tip: Hover on graph → Click camera icon to download image")
+            
+    except Exception as e:
+        st.error(f"Could not create graph. Error: {e}")
+        st.info("Tip: Make sure your data has numbers in the Y column.")
 
 else:
-    st.info("👆 Enter your data on the left to generate graphs!")
+    st.info("👆 Please load sample data, upload a file, or enter data manually to see the graph.")
 
-st.caption("Made with ❤️ using Streamlit + Plotly | Just tell the X and Y units and start plotting!")
+st.caption("Made easy for everyone | No coding needed | Just labels + data = Graph!")
