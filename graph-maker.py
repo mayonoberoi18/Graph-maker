@@ -2,104 +2,117 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Simple Graph Maker", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Pro Graph Maker", page_icon="📊", layout="wide")
 
-st.title("📊 Simple & Reliable Graph Maker")
-st.markdown("Upload your CSV/Excel → Choose graph type → Generate")
+st.title("📊 Pro Graph Maker")
+st.markdown("**Make your own graph OR upload Excel/CSV**")
 
-# File Upload
-st.subheader("Upload Your File")
-uploaded = st.file_uploader("Choose CSV or Excel file", type=["csv", "xlsx", "xls"])
+# ====================== Labels ======================
+st.subheader("1. Set Graph Labels")
+col1, col2 = st.columns(2)
+with col1:
+    x_label = st.text_input("X-Axis Label", value="Time (hours)")
+with col2:
+    y_label = st.text_input("Y-Axis Label", value="Temperature (°C)")
 
-if uploaded:
-    try:
-        if uploaded.name.endswith('.csv'):
-            df = pd.read_csv(uploaded)
-        else:
-            df = pd.read_excel(uploaded)
+# ====================== Graph Type ======================
+st.subheader("2. Choose Graph Type")
+graph_type = st.radio("Select type", 
+    ["Line Chart", "Bar Chart", "Scatter Plot", "Area Chart", "Box Plot", "Histogram"], 
+    horizontal=True)
 
-        st.success(f"✅ File loaded: **{uploaded.name}**")
-        st.write("**Columns detected:**", list(df.columns))
+# ====================== Data Input ======================
+st.subheader("3. Enter or Upload Data")
 
-        # Use first two columns
-        if len(df.columns) < 2:
-            st.error("File must have at least 2 columns.")
-            st.stop()
+tab1, tab2 = st.tabs(["✏️ Manual Entry (Make Your Own)", "📁 Upload File"])
 
-        df = df.iloc[:, :2].copy()
-        actual_x_col = df.columns[0]
-        actual_y_col = df.columns[1]
-
-        st.session_state.raw_data = df
-        st.session_state.actual_x = actual_x_col
-        st.session_state.actual_y = actual_y_col
-
-    except Exception as e:
-        st.error(f"Failed to read file: {e}")
-
-# Display and Edit Data
-if 'raw_data' in st.session_state:
-    st.subheader("Your Data (First 2 columns)")
-    edited_df = st.data_editor(
-        st.session_state.raw_data,
+with tab1:
+    st.info("Create your own graph here")
+    if 'manual_df' not in st.session_state:
+        st.session_state.manual_df = pd.DataFrame({
+            x_label: [1, 2, 3, 4, 5, 6],
+            y_label: [10, 25, 35, 48, 62, 75]
+        })
+    
+    manual_edited = st.data_editor(
+        st.session_state.manual_df,
         num_rows="dynamic",
         use_container_width=True,
-        hide_index=True
+        hide_index=True,
+        key="manual_editor"
     )
-    st.session_state.raw_data = edited_df
+    st.session_state.manual_df = manual_edited
 
-    # Labels for graph display
-    st.subheader("Graph Labels (You can change these)")
-    col1, col2 = st.columns(2)
-    with col1:
-        display_x = st.text_input("X-Axis Label", value=st.session_state.actual_x)
-    with col2:
-        display_y = st.text_input("Y-Axis Label", value=st.session_state.actual_y)
-
-    # Graph Type
-    st.subheader("Choose Graph Type")
-    graph_type = st.radio("Select type:", 
-        ["Line Chart", "Bar Chart", "Scatter Plot", "Area Chart", "Box Plot", "Histogram"],
-        horizontal=True)
-
-    if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
-        df = st.session_state.raw_data.copy()
-        
-        # Rename for nice display
-        plot_df = df.rename(columns={df.columns[0]: display_x, df.columns[1]: display_y})
-        
-        y_is_number = pd.api.types.is_numeric_dtype(df.iloc[:, 1])
-
+with tab2:
+    st.info("Upload your CSV or Excel file")
+    uploaded = st.file_uploader("Choose file", type=["csv", "xlsx", "xls"])
+    
+    if uploaded:
         try:
-            if graph_type == "Line Chart":
-                fig = px.line(plot_df, x=display_x, y=display_y, title=f"{display_y} vs {display_x}", markers=True)
-            elif graph_type == "Bar Chart":
-                fig = px.bar(plot_df, x=display_x, y=display_y, title=f"{display_y} vs {display_x}")
-            elif graph_type == "Scatter Plot":
-                fig = px.scatter(plot_df, x=display_x, y=display_y, title=f"{display_y} vs {display_x}")
-            elif graph_type == "Area Chart":
-                fig = px.area(plot_df, x=display_x, y=display_y, title=f"{display_y} vs {display_x}")
-            elif graph_type == "Box Plot":
-                if not y_is_number:
-                    st.error("Box Plot needs numbers in the second column.")
-                    st.stop()
-                fig = px.box(plot_df, y=display_y, title=f"Box Plot of {display_y}")
-            elif graph_type == "Histogram":
-                if not y_is_number:
-                    st.error("Histogram needs numbers in the second column.")
-                    st.stop()
-                fig = px.histogram(plot_df, x=display_y, nbins=20, title=f"Distribution of {display_y}")
-
-            fig.update_layout(height=650, title_font_size=24)
-            st.plotly_chart(fig, use_container_width=True)
-
-            # Download
-            csv_download = plot_df.to_csv(index=False).encode('utf-8')
-            st.download_button("💾 Download Edited Data", csv_download, "graph_data.csv", "text/csv")
-
+            if uploaded.name.endswith('.csv'):
+                df = pd.read_csv(uploaded)
+            else:
+                df = pd.read_excel(uploaded)
+            
+            st.success(f"✅ Loaded: {uploaded.name}")
+            st.write("**Detected columns:**", list(df.columns))
+            
+            if len(df.columns) >= 2:
+                df = df.iloc[:, :2].copy()
+                df.columns = [x_label, y_label]
+            
+            st.session_state.uploaded_df = df
+            st.dataframe(df, use_container_width=True)
         except Exception as e:
-            st.error(f"Could not create graph: {e}")
-else:
-    st.info("👆 Please upload your CSV or Excel file to begin.")
+            st.error(f"Error reading file: {e}")
 
-st.caption("Tip: Your first file has 'Time (hours)' and 'Temperature (°C)'. Second file has 'time' and 'temperature'.")
+# Use uploaded data if available, else manual
+if 'uploaded_df' in st.session_state and st.session_state.uploaded_df is not None:
+    current_df = st.session_state.uploaded_df
+    st.info("Using uploaded file data")
+else:
+    current_df = st.session_state.manual_df
+
+# ====================== Generate Graph ======================
+if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
+    df = current_df.copy()
+    
+    # Clean data (remove empty rows)
+    df = df.dropna()
+    
+    if len(df) == 0:
+        st.error("No valid data found.")
+        st.stop()
+    
+    is_y_numeric = pd.api.types.is_numeric_dtype(df.iloc[:, 1])
+    
+    try:
+        if graph_type == "Line Chart":
+            fig = px.line(df, x=df.columns[0], y=df.columns[1], title=f"{y_label} vs {x_label}", markers=True)
+        elif graph_type == "Bar Chart":
+            fig = px.bar(df, x=df.columns[0], y=df.columns[1], title=f"{y_label} vs {x_label}")
+        elif graph_type == "Scatter Plot":
+            fig = px.scatter(df, x=df.columns[0], y=df.columns[1], title=f"{y_label} vs {x_label}")
+        elif graph_type == "Area Chart":
+            fig = px.area(df, x=df.columns[0], y=df.columns[1], title=f"{y_label} vs {x_label}")
+        elif graph_type == "Box Plot":
+            if not is_y_numeric:
+                st.error("Box Plot needs numbers in Y column.")
+                st.stop()
+            fig = px.box(df, y=df.columns[1], title=f"Box Plot of {y_label}")
+        elif graph_type == "Histogram":
+            if not is_y_numeric:
+                st.error("Histogram needs numbers in Y column.")
+                st.stop()
+            fig = px.histogram(df, x=df.columns[1], nbins=20, title=f"Distribution of {y_label}")
+
+        fig.update_layout(height=650, title_font_size=24)
+        st.plotly_chart(fig, use_container_width=True)
+
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button("💾 Download Data", csv, "my_graph_data.csv", "text/csv", use_container_width=True)
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+st.caption("**How to use:** Manual tab = make your own | Upload tab = use your files | Then click Generate Graph")
