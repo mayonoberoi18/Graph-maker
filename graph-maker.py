@@ -5,137 +5,109 @@ import plotly.express as px
 st.set_page_config(page_title="Pro Graph Maker", page_icon="📊", layout="wide")
 
 st.title("📊 Pro Graph Maker")
-st.markdown("### Make beautiful graphs instantly — Upload Excel • Change units • Edit easily")
+st.markdown("**Upload Excel • Change Units • Edit Data • Beautiful Graphs**")
 
-# ====================== 1. AXIS UNITS ======================
-st.subheader("1. Choose Your Axis Units")
+# ====================== 1. Units ======================
+st.subheader("1. Set X and Y Axis Units")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("**X-Axis (Bottom)**")
-    x_common = ["Days", "Months", "Time (hours)", "Time (seconds)", "Subjects", 
-                "Match No.", "Age (years)", "Distance (km)"]
-    x_sug = st.selectbox("Common X units", x_common, index=4)
-    x_label = st.text_input("Custom X unit", value=x_sug, key="x_input")
+    st.markdown("**X-Axis Label**")
+    x_options = ["Days", "Months", "Time (hours)", "Subjects", "Match No.", "Age (years)", "Distance (km)"]
+    x_sug = st.selectbox("Common X units", x_options, index=3)
+    x_label = st.text_input("Or type custom", value=x_sug, key="x")
 
 with col2:
-    st.markdown("**Y-Axis (Side)**")
-    y_common = ["Marks", "Score", "Temperature (°C)", "Sales (₹)", "Height (cm)", 
-                "Speed (km/h)", "Weight (kg)", "Runs Scored", "Price (₹)"]
-    y_sug = st.selectbox("Common Y units", y_common, index=0)
-    y_label = st.text_input("Custom Y unit", value=y_sug, key="y_input")
+    st.markdown("**Y-Axis Label**")
+    y_options = ["Marks", "Score", "Temperature (°C)", "Sales (₹)", "Height (cm)", "Runs Scored", "Speed (km/h)"]
+    y_sug = st.selectbox("Common Y units", y_options, index=0)
+    y_label = st.text_input("Or type custom", value=y_sug, key="y")
 
-if st.button("🔄 Refresh Data with New Units", type="secondary", use_container_width=True):
+if st.button("🔄 Refresh Data with New Units", use_container_width=True):
     if 'data' in st.session_state:
         st.session_state.data.columns = [x_label, y_label]
-        st.success("✅ Data updated with new units!")
+        st.success("Units updated successfully!")
 
-# ====================== 2. GRAPH TYPE ======================
-st.subheader("2. Select Graph Type")
-graph_choice = st.radio(
-    "Choose graph style:",
-    ["📈 Line Chart", "📊 Bar Chart", "🌟 Scatter Plot", 
-     "🏠 Area Chart", "📦 Box Plot", "📊 Histogram"],
-    horizontal=True,
-    label_visibility="collapsed"
-)
+# ====================== 2. Graph Type ======================
+st.subheader("2. Choose Graph Type")
+graph_choice = st.radio("Select style", 
+    ["📈 Line Chart", "📊 Bar Chart", "🌟 Scatter Plot", "🏠 Area Chart", "📦 Box Plot", "📊 Histogram"],
+    horizontal=True)
 
-# ====================== 3. DATA SECTION ======================
-st.subheader("3. Your Data")
+# ====================== 3. Data Input ======================
+st.subheader("3. Add / Edit Your Data")
 
 # Sample Data
-st.markdown("**Quick Samples**")
-cols = st.columns(4)
-with cols[0]:
+st.markdown("**Sample Data**")
+scols = st.columns(4)
+with scols[0]:
     if st.button("🏫 School Marks", use_container_width=True):
-        st.session_state.data = pd.DataFrame({
-            x_label: ["Math", "Science", "English", "History", "Geography", "Hindi"],
-            y_label: [85, 92, 78, 65, 88, 82]
-        })
+        st.session_state.data = pd.DataFrame({x_label: ["Math","Science","English","History","Geo","Hindi"], y_label: [85,92,78,65,88,82]})
         st.rerun()
-with cols[1]:
+with scols[1]:
     if st.button("🏏 Cricket Runs", use_container_width=True):
-        st.session_state.data = pd.DataFrame({
-            x_label: ["M1", "M2", "M3", "M4", "M5"],
-            y_label: [45, 78, 102, 33, 67]
-        })
+        st.session_state.data = pd.DataFrame({x_label: ["M1","M2","M3","M4","M5"], y_label: [45,78,102,33,67]})
         st.rerun()
-with cols[2]:
+with scols[2]:
     if st.button("💰 Monthly Sales", use_container_width=True):
-        st.session_state.data = pd.DataFrame({
-            x_label: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-            y_label: [45000, 52000, 48000, 61000, 55000, 68000]
-        })
+        st.session_state.data = pd.DataFrame({x_label: ["Jan","Feb","Mar","Apr","May","Jun"], y_label: [45000,52000,48000,61000,55000,68000]})
         st.rerun()
-with cols[3]:
+with scols[3]:
     if st.button("🌡️ Temperature", use_container_width=True):
-        st.session_state.data = pd.DataFrame({
-            x_label: [1, 2, 3, 4, 5, 6],
-            y_label: [28, 32, 35, 31, 29, 33]
-        })
+        st.session_state.data = pd.DataFrame({x_label: [1,2,3,4,5,6], y_label: [28,32,35,31,29,33]})
         st.rerun()
 
-# File Upload
-st.subheader("Upload Your Excel or CSV File")
-uploaded_file = st.file_uploader("Select file", type=["xlsx", "xls", "csv"])
+# Upload File
+uploaded = st.file_uploader("Upload Excel (.xlsx) or CSV file", type=["xlsx","xls","csv"])
 
-if uploaded_file:
+if uploaded:
     try:
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
+        if uploaded.name.endswith('.csv'):
+            df = pd.read_csv(uploaded)
         else:
-            df = pd.read_excel(uploaded_file, engine='openpyxl')
+            df = pd.read_excel(uploaded, engine='openpyxl')
         
-        st.success(f"✅ File loaded: **{uploaded_file.name}**")
-        st.write("**Original Columns:**", list(df.columns))
-        
+        st.success(f"File loaded: {uploaded.name}")
         if len(df.columns) >= 2:
             df = df.iloc[:, :2].copy()
             df.columns = [x_label, y_label]
-            st.info("✅ Using first two columns from your file.")
-        
         st.session_state.data = df
         st.rerun()
-        
     except Exception as e:
-        st.error(f"❌ Could not read file: {str(e)}")
-        st.info("Tip: Make sure the file is not empty and saved as .xlsx format.")
+        st.error(f"Error reading file: {e}")
 
 # Edit Data
 if 'data' not in st.session_state:
-    st.session_state.data = pd.DataFrame({
-        x_label: ["Math", "Science", "English"],
-        y_label: [85, 92, 78]
-    })
+    st.session_state.data = pd.DataFrame({x_label: ["Math", "Science", "English"], y_label: [85, 92, 78]})
 
 st.subheader("Edit Your Data")
-st.info("You can change names in X column and numbers in Y column.")
+st.info("Change subject names in left column and numbers in right column.")
 
-edited_data = st.data_editor(
+edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True
 )
-st.session_state.data = edited_data
+st.session_state.data = edited_df
 
-# Preview
-st.subheader("Data Preview")
-st.dataframe(st.session_state.data, use_container_width=True)
+if 'data' in st.session_state:
+    st.subheader("Data Preview")
+    st.dataframe(st.session_state.data, use_container_width=True)
 
-# ====================== GENERATE GRAPH ======================
+# ====================== Generate Graph ======================
 if st.button("🚀 Generate Professional Graph", type="primary", use_container_width=True):
     if 'data' not in st.session_state or st.session_state.data.empty:
-        st.warning("Please upload a file or load sample data first!")
+        st.warning("Please upload file or load sample data")
     else:
         df = st.session_state.data.copy()
         
         if x_label not in df.columns or y_label not in df.columns:
-            st.error("Please click 'Refresh Data with New Units' after changing units.")
+            st.error("Click 'Refresh Data with New Units' after changing units.")
             st.stop()
 
-        is_numeric_y = pd.api.types.is_numeric_dtype(df[y_label])
+        is_num_y = pd.api.types.is_numeric_dtype(df[y_label])
 
         try:
             if "Line" in graph_choice:
@@ -147,51 +119,23 @@ if st.button("🚀 Generate Professional Graph", type="primary", use_container_w
             elif "Area" in graph_choice:
                 fig = px.area(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
             elif "Box" in graph_choice:
-                if not is_numeric_y:
-                    st.error("Box Plot requires numeric Y values.")
-                    st.stop()
-                fig = px.box(df, y=y_label, title=f"Box Plot — {y_label}")
+                if not is_num_y: st.error("Box Plot needs numbers in Y"); st.stop()
+                fig = px.box(df, y=y_label, title=f"Box Plot of {y_label}")
             elif "Histogram" in graph_choice:
-                if not is_numeric_y:
-                    st.error("Histogram requires numeric Y values.")
-                    st.stop()
-                fig = px.histogram(
-                    df, x=y_label, nbins=25, 
-                    title=f"Distribution of {y_label}",
-                    opacity=0.85
-                )
-                fig.update_traces(marker_color="#3498db", marker_line_color="#2c3e50", marker_line_width=1.5)
+                if not is_num_y: st.error("Histogram needs numbers in Y"); st.stop()
+                fig = px.histogram(df, x=y_label, nbins=25, title=f"Distribution of {y_label}", opacity=0.9)
+                fig.update_traces(marker_color="#1f77b4", marker_line_color="black", marker_line_width=1)
 
-            # Final Professional Touch
-            fig.update_layout(
-                height=720,
-                title_font_size=28,
-                title_x=0.5,
-                xaxis_title=x_label,
-                yaxis_title=y_label,
-                template="plotly_white",
-                font=dict(size=14),
-                margin=dict(l=80, r=40, t=100, b=80)
-            )
-
-            fig.update_xaxes(title_font=dict(size=18), tickfont=dict(size=13))
-            fig.update_yaxes(title_font=dict(size=18), tickfont=dict(size=13))
+            fig.update_layout(height=700, title_font_size=26, title_x=0.5,
+                              xaxis_title=x_label, yaxis_title=y_label,
+                              template="plotly_white")
 
             st.plotly_chart(fig, use_container_width=True)
 
-            # Download
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="💾 Download Data as CSV",
-                data=csv,
-                file_name="my_graph_data.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-
-            st.success("✅ Professional graph generated successfully!")
+            csv = df.to_csv(index=False).encode()
+            st.download_button("💾 Download Data as CSV", csv, "graph_data.csv", "text/csv", use_container_width=True)
 
         except Exception as e:
-            st.error(f"Error creating graph: {e}")
+            st.error(f"Graph error: {e}")
 
-st.caption("Best Version • Easy Excel Support • Professional Graphs • Made with ❤️")
+st.caption("This is the clean & working best version. Upload your Excel file and test it.")
