@@ -114,7 +114,7 @@ if 'data' in st.session_state:
     st.dataframe(st.session_state.data, use_container_width=True)
 
 # ====================== Generate Graph ======================
-if st.button("🚀 Generate Professional Graph", type="primary", use_container_width=True):
+if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
     if 'data' not in st.session_state or st.session_state.data.empty:
         st.warning("Please load or edit data first!")
     else:
@@ -171,4 +171,4 @@ if st.button("🚀 Generate Professional Graph", type="primary", use_container_w
         except Exception as e:
             st.error(f"Error: {e}")
 
-st.caption("✅ Now you can easily edit subject names and their marks/numbers.")
+st.caption("You can also download the data.")
