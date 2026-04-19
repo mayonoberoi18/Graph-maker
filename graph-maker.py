@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Pro Graph Maker", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Graph Maker", page_icon="📊", layout="wide")
 
 st.title("📊 Pro Graph Maker")
 st.markdown("**Professional graphs with easy editing**")
