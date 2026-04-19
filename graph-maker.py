@@ -4,8 +4,8 @@ import plotly.express as px
 
 st.set_page_config(page_title="Graph Maker", page_icon="📊", layout="wide")
 
-st.title("📊 Pro Graph Maker")
-st.markdown("**Professional graphs with easy editing**")
+st.title("📊 Graph Maker")
+st.markdown("**Professional graphs with easy editing, by Mayon Oberoi.Illuminati**")
 
 # ====================== Units ======================
 st.subheader("1. Set Your Axis Units")
