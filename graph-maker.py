@@ -2,144 +2,144 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ================= CONFIG =================
-st.set_page_config(page_title="Graph Maker Pro", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Pro Graph Maker", page_icon="📊", layout="wide")
 
-st.title("📊 Graph Maker Pro (Stable Version)")
-st.write("Create graphs easily — upload, edit, and download")
+st.title("📊 Pro Graph Maker")
+st.markdown("**Fixed version** - Change units • Edit data • Generate graph")
 
-# ================= SESSION STATE =================
-if "data" not in st.session_state:
-    st.session_state.data = pd.DataFrame({
-        "X": [1, 2, 3, 4, 5],
-        "Y": [10, 20, 30, 40, 50]
+# ====================== 1. Units ======================
+st.subheader("1. X and Y Axis Labels")
+
+col1, col2 = st.columns(2)
+with col1:
+    x_label = st.text_input("X-Axis Label", value="Time (hours)", key="x_label_key")
+with col2:
+    y_label = st.text_input("Y-Axis Label", value="Temperature (°C)", key="y_label_key")
+
+# ✅ FIX: actually update dataframe column names
+if st.button("🔄 Refresh with New Units", type="secondary", use_container_width=True):
+    if 'current_data' in st.session_state:
+        df = st.session_state.current_data.copy()
+        if df.shape[1] >= 2:
+            df.columns = [x_label, y_label]
+            st.session_state.current_data = df
+    st.success("Labels updated successfully!")
+
+# ====================== 2. Graph Type ======================
+st.subheader("2. Graph Type")
+graph_type = st.radio("Choose graph:", 
+    ["Line Chart", "Bar Chart", "Scatter Plot", "Area Chart", "Box Plot", "Histogram"], 
+    horizontal=True)
+
+# ====================== 3. Data ======================
+st.subheader("3. Your Data")
+
+# Initialize data if not exists
+if 'current_data' not in st.session_state:
+    st.session_state.current_data = pd.DataFrame({
+        x_label: [1, 2, 3, 4, 5, 6],
+        y_label: [10, 25, 35, 48, 62, 75]
     })
 
-# ================= SIDEBAR =================
-st.sidebar.header("⚙️ Controls")
-
-x_label = st.sidebar.text_input("X Axis Label", value="X")
-y_label = st.sidebar.text_input("Y Axis Label", value="Y")
-
-graph_type = st.sidebar.selectbox("Graph Type", [
-    "Line", "Bar", "Scatter", "Area", "Box", "Histogram"
-])
-
-theme = st.sidebar.selectbox("Theme", [
-    "plotly", "plotly_white", "plotly_dark"
-])
-
-# ================= DATA INPUT =================
-st.subheader("📥 Data Input")
-
+# Manual + Upload in one place for simplicity
 tab1, tab2 = st.tabs(["Manual Entry", "Upload File"])
 
 with tab1:
-    edited = st.data_editor(
-        st.session_state.data,
+    st.info("Edit here - You can change numbers and text")
+    edited_data = st.data_editor(
+        st.session_state.current_data,
         num_rows="dynamic",
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
-    st.session_state.data = edited
+    st.session_state.current_data = edited_data
 
 with tab2:
-    uploaded = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
-
+    uploaded = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx", "xls"])
     if uploaded:
         try:
-            if uploaded.name.endswith(".csv"):
+            if uploaded.name.endswith('.csv'):
                 df = pd.read_csv(uploaded)
             else:
                 df = pd.read_excel(uploaded)
-
-            if df.shape[1] < 2:
-                st.error("File must have at least 2 columns")
-            else:
-                df = df.iloc[:, :2]
+            
+            st.success("File loaded!")
+            if len(df.columns) >= 2:
+                df = df.iloc[:, :2].copy()
                 df.columns = [x_label, y_label]
-                st.session_state.data = df
-                st.success("File loaded successfully!")
-
+            st.session_state.current_data = df
+            st.dataframe(df)
         except Exception as e:
-            st.error(f"Error reading file: {e}")
+            st.error(f"Could not read file: {e}")
 
-# ================= DATA PREVIEW =================
-df = st.session_state.data.copy()
-
-if df.shape[1] >= 2:
-    df.columns = [x_label, y_label]
-
-st.subheader("📋 Data Preview")
-st.dataframe(df, use_container_width=True)
-
-# ================= GRAPH =================
-st.subheader("📈 Graph")
-
-if st.button("Generate Graph 🚀"):
-
-    df = df.dropna()
-
-    if len(df) == 0:
-        st.error("No valid data")
+# ====================== Generate Graph ======================
+if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
+    df = st.session_state.current_data.copy()
+    
+    # Remove any completely empty rows
+    df = df.dropna(how='all')
+    
+    if len(df) < 1:
+        st.error("Please add some data.")
         st.stop()
 
+    # Ensure column names match labels
+    df.columns = [x_label, y_label]
+
+    # ✅ NEW: Safe numeric check before plotting
+    y_numeric = pd.api.types.is_numeric_dtype(df[y_label])
+
     try:
-        title = f"{y_label} vs {x_label}"
+        if graph_type == "Line Chart":
+            fig = px.line(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}", markers=True)
 
-        # ---------- GRAPH LOGIC ----------
-        if graph_type == "Line":
-            fig = px.line(df, x=x_label, y=y_label, markers=True)
+        elif graph_type == "Bar Chart":
+            fig = px.bar(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
 
-        elif graph_type == "Bar":
-            fig = px.bar(df, x=x_label, y=y_label)
+        elif graph_type == "Scatter Plot":
+            fig = px.scatter(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
 
-        elif graph_type == "Scatter":
-            fig = px.scatter(df, x=x_label, y=y_label)
+        elif graph_type == "Area Chart":
+            fig = px.area(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
 
-        elif graph_type == "Area":
-            fig = px.area(df, x=x_label, y=y_label)
-
-        elif graph_type == "Box":
-            if not pd.api.types.is_numeric_dtype(df[y_label]):
-                st.error("Y must be numeric for Box Plot")
+        elif graph_type == "Box Plot":
+            if not y_numeric:
+                st.error("Box Plot needs numeric Y values.")
                 st.stop()
-            fig = px.box(df, y=y_label)
+            fig = px.box(df, y=y_label, title=f"Box Plot of {y_label}")
 
         elif graph_type == "Histogram":
-            if not pd.api.types.is_numeric_dtype(df[y_label]):
-                st.error("Y must be numeric for Histogram")
+            if not y_numeric:
+                st.error("Histogram needs numeric Y values.")
                 st.stop()
-            fig = px.histogram(df, x=y_label, nbins=20)
+            fig = px.histogram(df, x=y_label, nbins=20, title=f"Distribution of {y_label}", opacity=0.85)
 
-        # ---------- STYLING ----------
+        # Professional look
         fig.update_layout(
-            template=theme,
-            title=title,
+            height=680,
+            title_font_size=26,
             title_x=0.5,
-            height=600,
             xaxis_title=x_label,
-            yaxis_title=y_label
+            yaxis_title=y_label,
+            template="plotly_white"
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # ================= DOWNLOAD =================
-        st.subheader("⬇ Download")
+        # Download CSV
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button("💾 Download Data as CSV", csv, "graph_data.csv", "text/csv", use_container_width=True)
 
-        col1, col2 = st.columns(2)
+        # ✅ NEW: PNG Download (safe)
+        try:
+            img = fig.to_image(format="png")
+            st.download_button("🖼 Download Graph as PNG", img, "graph.png", use_container_width=True)
+        except:
+            st.info("Install 'kaleido' to enable PNG download")
 
-        with col1:
-            csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button("Download CSV", csv, "data.csv")
-
-        with col2:
-            try:
-                img = fig.to_image(format="png")
-                st.download_button("Download PNG", img, "graph.png")
-            except:
-                st.warning("PNG download needs kaleido installed")
-
-        st.success("Graph created successfully!")
+        st.success("Graph generated successfully!")
 
     except Exception as e:
-        st.error(f"Error generating graph: {e}")
+        st.error(f"Could not generate graph: {e}")
+
+st.caption("Change X/Y labels → Click Refresh → Edit data → Generate Graph")
