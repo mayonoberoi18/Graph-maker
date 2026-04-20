@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Pro Graph Maker", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Graph Maker", page_icon="📊", layout="wide")
 
-st.title("📊 Pro Graph Maker")
-st.markdown("**Upload Excel • Change Units • Edit Data • Beautiful Graphs**")
+st.title("📊 Graph Maker")
+st.markdown("**Change Units • Edit Data • Make Graphs• By Mayon Oberoi • Illuminati**")
 
 # ====================== 1. Units ======================
 st.subheader("1. Set X and Y Axis Units")
@@ -121,4 +121,4 @@ if st.button("🚀 Generate Professional Graph", type="primary", use_container_w
         except Exception as e:
             st.error(f"Graph error: {e}")
 
-st.caption("This is the clean & working best version. Upload your Excel file and test it.")
+st.caption("You can also download the data.")
