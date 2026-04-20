@@ -7,11 +7,11 @@ st.set_page_config(page_title="Graph Maker", page_icon="📊", layout="wide")
 st.title("📊 Graph Maker")
 st.markdown("**Change Units • Edit Data • Make Graphs• By Mayon Oberoi • Illuminati**")
 
-# Initialize session state for labels if not present
-if 'x_label_val' not in st.session_state:
-    st.session_state.x_label_val = "Subjects"
-if 'y_label_val' not in st.session_state:
-    st.session_state.y_label_val = "Marks"
+# --- Logic to handle title updates from buttons ---
+if 'x_val' not in st.session_state:
+    st.session_state.x_val = "Subjects"
+if 'y_val' not in st.session_state:
+    st.session_state.y_val = "Marks"
 
 # ====================== 1. Units ======================
 st.subheader("1. Set X and Y Axis Units")
@@ -21,28 +21,32 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("**X-Axis Label**")
     x_options = ["Days", "Months", "Time (hours)", "Subjects", "Match No.", "Age (years)", "Distance (km)"]
+    # We find the index based on the session state value
     try:
-        x_idx = x_options.index(st.session_state.x_label_val)
+        x_index = x_options.index(st.session_state.x_val)
     except ValueError:
-        x_idx = 3
+        x_index = 3
     
-    x_sug = st.selectbox("Common X units", x_options, index=x_idx)
-    x_label = st.text_input("Or type custom", value=st.session_state.x_label_val, key="x_input")
+    x_sug = st.selectbox("Common X units", x_options, index=x_index)
+    x_label = st.text_input("Or type custom", value=st.session_state.x_val, key="x_input_box")
+    st.session_state.x_val = x_label # Sync state
 
 with col2:
     st.markdown("**Y-Axis Label**")
     y_options = ["Marks", "Score", "Temperature (°C)", "Sales (₹)", "Height (cm)", "Runs Scored", "Speed (km/h)"]
     try:
-        y_idx = y_options.index(st.session_state.y_label_val)
+        y_index = y_options.index(st.session_state.y_val)
     except ValueError:
-        y_idx = 0
+        y_index = 0
         
-    y_sug = st.selectbox("Common Y units", y_options, index=y_idx)
-    y_label = st.text_input("Or type custom", value=st.session_state.y_label_val, key="y_input")
+    y_sug = st.selectbox("Common Y units", y_options, index=y_index)
+    y_label = st.text_input("Or type custom", value=st.session_state.y_val, key="y_input_box")
+    st.session_state.y_val = y_label # Sync state
 
-# Update state based on current input
-st.session_state.x_label_val = x_label
-st.session_state.y_label_val = y_label
+if st.button("🔄 Refresh Data with New Units", use_container_width=True):
+    if 'data' in st.session_state:
+        st.session_state.data.columns = [x_label, y_label]
+        st.success("Units updated successfully!")
 
 # ====================== 2. Graph Type ======================
 st.subheader("2. Choose Graph Type")
@@ -58,54 +62,61 @@ st.markdown("**Sample Data**")
 scols = st.columns(4)
 with scols[0]:
     if st.button("🏫 School Marks", use_container_width=True):
-        st.session_state.x_label_val = "Subjects"
-        st.session_state.y_label_val = "Marks"
+        st.session_state.x_val = "Subjects"
+        st.session_state.y_val = "Marks"
         st.session_state.data = pd.DataFrame({"Subjects": ["Math","Science","English","History","Geo","Hindi"], "Marks": [85,92,78,65,88,82]})
         st.rerun()
 with scols[1]:
     if st.button("🏏 Cricket Runs", use_container_width=True):
-        st.session_state.x_label_val = "Match No."
-        st.session_state.y_label_val = "Runs Scored"
+        st.session_state.x_val = "Match No."
+        st.session_state.y_val = "Runs Scored"
         st.session_state.data = pd.DataFrame({"Match No.": ["M1","M2","M3","M4","M5"], "Runs Scored": [45,78,102,33,67]})
         st.rerun()
 with scols[2]:
     if st.button("💰 Monthly Sales", use_container_width=True):
-        st.session_state.x_label_val = "Months"
-        st.session_state.y_label_val = "Sales (₹)"
+        st.session_state.x_val = "Months"
+        st.session_state.y_val = "Sales (₹)"
         st.session_state.data = pd.DataFrame({"Months": ["Jan","Feb","Mar","Apr","May","Jun"], "Sales (₹)": [45000,52000,48000,61000,55000,68000]})
         st.rerun()
 with scols[3]:
     if st.button("🌡️ Temperature", use_container_width=True):
-        st.session_state.x_label_val = "Days"
-        st.session_state.y_label_val = "Temperature (°C)"
+        st.session_state.x_val = "Days"
+        st.session_state.y_val = "Temperature (°C)"
         st.session_state.data = pd.DataFrame({"Days": [1,2,3,4,5,6], "Temperature (°C)": [28,32,35,31,29,33]})
         st.rerun()
 
-# Initial data setup
+# Edit Data
 if 'data' not in st.session_state:
     st.session_state.data = pd.DataFrame({x_label: ["Math", "Science", "English"], y_label: [85, 92, 78]})
 
-# Force column sync
-if list(st.session_state.data.columns) != [x_label, y_label]:
-    st.session_state.data.columns = [x_label, y_label]
-
 st.subheader("Edit Your Data")
-# Using a dynamic key (x_label + y_label) forces the widget to refresh when titles change
+st.info("Change subject names in left column and numbers in right column.")
+
+# We use a key that includes the labels to force the editor to refresh column titles
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True,
-    key=f"editor_{x_label}_{y_label}" 
+    key=f"editor_{st.session_state.x_val}_{st.session_state.y_val}"
 )
 st.session_state.data = edited_df
 
+if 'data' in st.session_state:
+    st.subheader("Data Preview")
+    st.dataframe(st.session_state.data, use_container_width=True)
+
 # ====================== Generate Graph ======================
 if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
-    if st.session_state.data.empty:
-        st.warning("Please add some data first.")
+    if 'data' not in st.session_state or st.session_state.data.empty:
+        st.warning("Please upload file or load sample data")
     else:
         df = st.session_state.data.copy()
+        
+        if x_label not in df.columns or y_label not in df.columns:
+            st.error(f"Column mismatch! Current data columns: {list(df.columns)}. Click 'Refresh Data with New Units'.")
+            st.stop()
+
         is_num_y = pd.api.types.is_numeric_dtype(df[y_label])
 
         try:
@@ -136,3 +147,5 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
 
         except Exception as e:
             st.error(f"Graph error: {e}")
+
+st.caption("You can also download the data.")
