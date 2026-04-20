@@ -130,4 +130,4 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
 
         try:
             if "Line" in graph_choice:
-                fig = px.line(df, x=current_x, y=current_y, title=f"{current_y} vs {current_x
+                fig = px.line(df, x=current_x, y=current_y, title=f"{current_y} vs {current_x}
