@@ -81,20 +81,22 @@ with scols[3]:
         st.session_state.data = pd.DataFrame({"Days": [1,2,3,4,5,6], "Temperature (°C)": [28,32,35,31,29,33]})
         st.rerun()
 
-# Edit Data logic
+# Initial data setup
 if 'data' not in st.session_state:
     st.session_state.data = pd.DataFrame({x_label: ["Math", "Science", "English"], y_label: [85, 92, 78]})
 
-# KEY ADDITION: Always sync columns with sidebar labels before editing
+# Force column sync
 if list(st.session_state.data.columns) != [x_label, y_label]:
     st.session_state.data.columns = [x_label, y_label]
 
 st.subheader("Edit Your Data")
+# Using a dynamic key (x_label + y_label) forces the widget to refresh when titles change
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
-    hide_index=True
+    hide_index=True,
+    key=f"editor_{x_label}_{y_label}" 
 )
 st.session_state.data = edited_df
 
@@ -104,8 +106,6 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
         st.warning("Please add some data first.")
     else:
         df = st.session_state.data.copy()
-        
-        # This part is now much safer
         is_num_y = pd.api.types.is_numeric_dtype(df[y_label])
 
         try:
