@@ -58,24 +58,7 @@ with scols[3]:
         st.session_state.data = pd.DataFrame({x_label: [1,2,3,4,5,6], y_label: [28,32,35,31,29,33]})
         st.rerun()
 
-# Upload File
-uploaded = st.file_uploader("Upload Excel (.xlsx) or CSV file", type=["xlsx","xls","csv"])
 
-if uploaded:
-    try:
-        if uploaded.name.endswith('.csv'):
-            df = pd.read_csv(uploaded)
-        else:
-            df = pd.read_excel(uploaded, engine='openpyxl')
-        
-        st.success(f"File loaded: {uploaded.name}")
-        if len(df.columns) >= 2:
-            df = df.iloc[:, :2].copy()
-            df.columns = [x_label, y_label]
-        st.session_state.data = df
-        st.rerun()
-    except Exception as e:
-        st.error(f"Error reading file: {e}")
 
 # Edit Data
 if 'data' not in st.session_state:
