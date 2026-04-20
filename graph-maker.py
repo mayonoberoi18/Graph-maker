@@ -21,7 +21,6 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("**X-Axis Label**")
     x_options = ["Days", "Months", "Time (hours)", "Subjects", "Match No.", "Age (years)", "Distance (km)"]
-    # Check if current state is in options to set index, else default to index 3
     try:
         x_idx = x_options.index(st.session_state.x_label_val)
     except ValueError:
@@ -44,11 +43,6 @@ with col2:
 # Update state based on current input
 st.session_state.x_label_val = x_label
 st.session_state.y_label_val = y_label
-
-if st.button("🔄 Refresh Data with New Units", use_container_width=True):
-    if 'data' in st.session_state:
-        st.session_state.data.columns = [x_label, y_label]
-        st.success("Units updated successfully!")
 
 # ====================== 2. Graph Type ======================
 st.subheader("2. Choose Graph Type")
@@ -87,13 +81,15 @@ with scols[3]:
         st.session_state.data = pd.DataFrame({"Days": [1,2,3,4,5,6], "Temperature (°C)": [28,32,35,31,29,33]})
         st.rerun()
 
-# Edit Data
+# Edit Data logic
 if 'data' not in st.session_state:
     st.session_state.data = pd.DataFrame({x_label: ["Math", "Science", "English"], y_label: [85, 92, 78]})
 
-st.subheader("Edit Your Data")
-st.info("Change subject names in left column and numbers in right column.")
+# KEY ADDITION: Always sync columns with sidebar labels before editing
+if list(st.session_state.data.columns) != [x_label, y_label]:
+    st.session_state.data.columns = [x_label, y_label]
 
+st.subheader("Edit Your Data")
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
@@ -102,21 +98,14 @@ edited_df = st.data_editor(
 )
 st.session_state.data = edited_df
 
-if 'data' in st.session_state:
-    st.subheader("Data Preview")
-    st.dataframe(st.session_state.data, use_container_width=True)
-
 # ====================== Generate Graph ======================
 if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
-    if 'data' not in st.session_state or st.session_state.data.empty:
-        st.warning("Please upload file or load sample data")
+    if st.session_state.data.empty:
+        st.warning("Please add some data first.")
     else:
         df = st.session_state.data.copy()
         
-        if x_label not in df.columns or y_label not in df.columns:
-            st.error(f"Column mismatch! Current data columns are: {list(df.columns)}. Click 'Refresh Data with New Units' to fix.")
-            st.stop()
-
+        # This part is now much safer
         is_num_y = pd.api.types.is_numeric_dtype(df[y_label])
 
         try:
@@ -147,5 +136,3 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
 
         except Exception as e:
             st.error(f"Graph error: {e}")
-
-st.caption("You can also download the data.")
