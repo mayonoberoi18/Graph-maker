@@ -80,7 +80,7 @@ if 'data' in st.session_state:
     st.dataframe(st.session_state.data, use_container_width=True)
 
 # ====================== Generate Graph ======================
-if st.button("🚀 Generate Professional Graph", type="primary", use_container_width=True):
+if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
     if 'data' not in st.session_state or st.session_state.data.empty:
         st.warning("Please upload file or load sample data")
     else:
