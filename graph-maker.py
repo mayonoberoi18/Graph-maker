@@ -7,7 +7,7 @@ st.set_page_config(page_title="Graph Maker", page_icon="📊", layout="wide")
 st.title("📊 Graph Maker")
 st.markdown("**Change Units • Edit Data • Make Graphs• By Mayon Oberoi • Illuminati**")
 
-# --- Logic to handle title updates ---
+# --- Logic to handle title updates from buttons ---
 if 'x_val' not in st.session_state:
     st.session_state.x_val = "Subjects"
 if 'y_val' not in st.session_state:
@@ -21,6 +21,7 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("**X-Axis Label**")
     x_options = ["Days", "Months", "Time (hours)", "Subjects", "Match No.", "Age (years)", "Distance (km)"]
+    # We find the index based on the session state value
     try:
         x_index = x_options.index(st.session_state.x_val)
     except ValueError:
@@ -28,7 +29,7 @@ with col1:
     
     x_sug = st.selectbox("Common X units", x_options, index=x_index)
     x_label = st.text_input("Or type custom", value=st.session_state.x_val, key="x_input_box")
-    st.session_state.x_val = x_label 
+    st.session_state.x_val = x_label # Sync state
 
 with col2:
     st.markdown("**Y-Axis Label**")
@@ -40,43 +41,23 @@ with col2:
         
     y_sug = st.selectbox("Common Y units", y_options, index=y_index)
     y_label = st.text_input("Or type custom", value=st.session_state.y_val, key="y_input_box")
-    st.session_state.y_val = y_label
+    st.session_state.y_val = y_label # Sync state
 
 if st.button("🔄 Refresh Data with New Units", use_container_width=True):
     if 'data' in st.session_state:
         st.session_state.data.columns = [x_label, y_label]
         st.success("Units updated successfully!")
 
-# ====================== 2. File Upload ======================
-st.subheader("2. Upload Excel File")
-uploaded_file = st.file_uploader("Choose an Excel file", type=["xlsx", "xls"])
-
-if uploaded_file is not None:
-    try:
-        # Read Excel
-        df_upload = pd.read_excel(uploaded_file)
-        if len(df_upload.columns) >= 2:
-            # Automatically update titles/units based on file columns
-            st.session_state.x_val = str(df_upload.columns[0])
-            st.session_state.y_val = str(df_upload.columns[1])
-            st.session_state.data = df_upload.iloc[:, :2] # Take first two columns
-            st.success("File Loaded Successfully!")
-        else:
-            st.error("Excel file must have at least 2 columns.")
-    except Exception as e:
-        st.error(f"Error loading file: {e}")
-else:
-    st.error("File is not loaded")
-
-# ====================== 3. Graph Type ======================
-st.subheader("3. Choose Graph Type")
+# ====================== 2. Graph Type ======================
+st.subheader("2. Choose Graph Type")
 graph_choice = st.radio("Select style", 
     ["📈 Line Chart", "📊 Bar Chart", "🌟 Scatter Plot", "🏠 Area Chart", "📦 Box Plot", "📊 Histogram"],
     horizontal=True)
 
-# ====================== 4. Data Input ======================
-st.subheader("4. Add / Edit Your Data")
+# ====================== 3. Data Input ======================
+st.subheader("3. Add / Edit Your Data")
 
+# Sample Data
 st.markdown("**Sample Data**")
 scols = st.columns(4)
 with scols[0]:
@@ -104,10 +85,14 @@ with scols[3]:
         st.session_state.data = pd.DataFrame({"Days": [1,2,3,4,5,6], "Temperature (°C)": [28,32,35,31,29,33]})
         st.rerun()
 
+# Edit Data
 if 'data' not in st.session_state:
-    st.session_state.data = pd.DataFrame({st.session_state.x_val: ["Math", "Science", "English"], st.session_state.y_val: [85, 92, 78]})
+    st.session_state.data = pd.DataFrame({x_label: ["Math", "Science", "English"], y_label: [85, 92, 78]})
 
 st.subheader("Edit Your Data")
+st.info("Change subject names in left column and numbers in right column.")
+
+# We use a key that includes the labels to force the editor to refresh column titles
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
@@ -117,6 +102,10 @@ edited_df = st.data_editor(
 )
 st.session_state.data = edited_df
 
+if 'data' in st.session_state:
+    st.subheader("Data Preview")
+    st.dataframe(st.session_state.data, use_container_width=True)
+
 # ====================== Generate Graph ======================
 if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
     if 'data' not in st.session_state or st.session_state.data.empty:
@@ -124,10 +113,39 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
     else:
         df = st.session_state.data.copy()
         
-        # Using state values for consistency
-        current_x = st.session_state.x_val
-        current_y = st.session_state.y_val
+        if x_label not in df.columns or y_label not in df.columns:
+            st.error(f"Column mismatch! Current data columns: {list(df.columns)}. Click 'Refresh Data with New Units'.")
+            st.stop()
+
+        is_num_y = pd.api.types.is_numeric_dtype(df[y_label])
 
         try:
             if "Line" in graph_choice:
-                fig = px.line(df, x=current_x, y=current_y, title=f"{current_y} vs {current_x}
+                fig = px.line(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}", markers=True)
+            elif "Bar" in graph_choice:
+                fig = px.bar(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
+            elif "Scatter" in graph_choice:
+                fig = px.scatter(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
+            elif "Area" in graph_choice:
+                fig = px.area(df, x=x_label, y=y_label, title=f"{y_label} vs {x_label}")
+            elif "Box" in graph_choice:
+                if not is_num_y: st.error("Box Plot needs numbers in Y"); st.stop()
+                fig = px.box(df, y=y_label, title=f"Box Plot of {y_label}")
+            elif "Histogram" in graph_choice:
+                if not is_num_y: st.error("Histogram needs numbers in Y"); st.stop()
+                fig = px.histogram(df, x=y_label, nbins=25, title=f"Distribution of {y_label}", opacity=0.9)
+                fig.update_traces(marker_color="#1f77b4", marker_line_color="black", marker_line_width=1)
+
+            fig.update_layout(height=700, title_font_size=26, title_x=0.5,
+                              xaxis_title=x_label, yaxis_title=y_label,
+                              template="plotly_white")
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            csv = df.to_csv(index=False).encode()
+            st.download_button("💾 Download Data as CSV", csv, "graph_data.csv", "text/csv", use_container_width=True)
+
+        except Exception as e:
+            st.error(f"Graph error: {e}")
+
+st.caption("You can also download the data.")
