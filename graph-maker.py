@@ -34,16 +34,15 @@ with col1:
     x_options = ["Days", "Months", "Time (hours)", "Subjects", "Match No.", 
                  "Age (years)", "Distance (km)", "Category"]
     x_index = x_options.index(st.session_state.x_val) if st.session_state.x_val in x_options else 3
-    x_label = st.text_input("X label", value=st.session_state.x_val, key="custom_x_in")
+    x_label = st.text_input("X label", value=st.session_state.x_val, key="x_label_in")
 
 with col2:
     st.markdown("**Y-Axis Label**")
     y_options = ["Marks", "Score", "Temperature (°C)", "Sales (₹)", "Height (cm)", 
                  "Runs Scored", "Speed (km/h)", "Price", "Count"]
     y_index = y_options.index(st.session_state.y_val) if st.session_state.y_val in y_options else 0
-    y_label = st.text_input("Y label", value=st.session_state.y_val, key="custom_y_in")
+    y_label = st.text_input("Y label", value=st.session_state.y_val, key="y_label_in")
 
-# Update labels in session state
 st.session_state.x_val = x_label
 st.session_state.y_val = y_label
 
@@ -89,23 +88,22 @@ with sample_cols[3]:
 
 # Data Editor
 st.subheader("Edit Your Data")
-st.info("👈 Add rows at the bottom. The graph will update when you click the button below.")
+st.info("👈 Add rows at the bottom. Your changes are locked in when you click 'Generate Graph'.")
 
-# FIX: Using a static key 'main_editor' and NOT syncing to session_state 
-# immediately prevents the "first-time edit/new row" bug.
+# Use a static key to prevent the "double entry" bug
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True,
-    key="main_editor"
+    key="stable_editor_v2"
 )
 
 # ====================== Generate Graph ======================
 st.divider()
 
 if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
-    # Save the edited data to session state only when generating
+    # Update Session State
     st.session_state.data = edited_df
     df = edited_df.copy()
     
@@ -115,7 +113,7 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
     
     x_col, y_col = df.columns[0], df.columns[1]
     
-    # Try to convert Y column to numeric for math-based charts
+    # Check for numeric data for math-based charts
     df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
     is_numeric_y = not df[y_col].isnull().all()
 
@@ -137,21 +135,32 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
             if not is_numeric_y:
                 st.error(f"'{y_col}' must contain numbers for a Histogram.")
                 st.stop()
-            # FIX: Continuous, side-by-side connected bars
+            # Side-by-side connected bars (standard histogram look)
             fig = px.histogram(df, x=y_col, nbins=10)
-            fig.update_layout(bargap=0) # Removes space between bars
+            fig.update_layout(bargap=0) 
             fig.update_traces(marker_line_color='white', marker_line_width=1)
 
         fig.update_layout(
             height=600,
             template="plotly_white",
             xaxis_title=x_label,
-            yaxis_title="Count/Frequency" if "Histogram" in graph_choice else y_label,
-            title=f"{graph_choice.split()[-1]} Analysis"
+            yaxis_title="Count" if "Histogram" in graph_choice else y_label,
+            title=f"{graph_choice.split()[-1]} of {y_label}",
+            title_x=0.5
         )
         st.plotly_chart(fig, use_container_width=True)
 
+        # Restored Download Feature
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="💾 Download Data as CSV",
+            data=csv,
+            file_name="my_graph_data.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
     except Exception as e:
-        st.error(f"Could not generate graph. Please check your data. Error: {e}")
+        st.error(f"Error: {e}")
 
 st.caption("Made with ❤️ by Mayon Oberoi")
