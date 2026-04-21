@@ -88,7 +88,7 @@ with sample_cols[3]:
 
 # Data Editor
 st.subheader("Edit Your Data")
-st.info("👈 Add rows at the bottom. Your changes are locked in when you click 'Generate Graph'.")
+
 
 # Use a static key to prevent the "double entry" bug
 edited_df = st.data_editor(
