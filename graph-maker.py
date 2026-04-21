@@ -46,7 +46,7 @@ with col2:
 st.session_state.x_val = x_label
 st.session_state.y_val = y_label
 
-if st.button("🔄 Apply New Axis Labels to Data", use_container_width=True):
+if st.button("🔄 Refresh Data", use_container_width=True):
     old_cols = list(st.session_state.data.columns)
     st.session_state.data = st.session_state.data.rename(columns={
         old_cols[0]: x_label,
@@ -163,4 +163,4 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
     except Exception as e:
         st.error(f"Error: {e}")
 
-st.caption("Made with ❤️ by Mayon Oberoi")
+st.caption("Made by Mayon Oberoi")
