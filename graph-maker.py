@@ -47,7 +47,7 @@ with col2:
     y_sug = st.selectbox("Common Y labels", y_options, index=y_index, key="y_sug")
     y_label = st.text_input("Or type custom Y label", value=st.session_state.y_val, key="y_input")
 
-# Update session state when inputs change
+# Update session state
 if x_label != st.session_state.x_val or y_label != st.session_state.y_val:
     st.session_state.x_val = x_label
     st.session_state.y_val = y_label
@@ -123,13 +123,13 @@ with sample_cols[3]:
 st.subheader("Edit Your Data")
 st.info("👈 Edit values directly below. Add/remove rows as needed.")
 
-# FIX: Using a static key 'main_editor' ensures edits are saved correctly on the first try
+# FIX: Changed key to a static string 'main_data_editor' to stop the "first-try" bug
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True,
-    key="main_editor"
+    key="main_data_editor"
 )
 
 st.session_state.data = edited_df
@@ -149,7 +149,6 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
         st.error("Please add some data first!")
         st.stop()
     
-    # Get current column names
     current_cols = list(df.columns)
     if len(current_cols) < 2:
         st.error("Data must have at least 2 columns")
@@ -175,6 +174,9 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
                 st.stop()
             fig = px.box(df, y=y_col, title=f"Box Plot of {y_col}")
         elif "Histogram" in graph_choice:
+            if not is_numeric_y:
+                st.error("Histogram requires numeric values in Y column")
+                st.stop()
             fig = px.histogram(df, x=y_col, nbins=20, title=f"Distribution of {y_col}")
             fig.update_traces(marker_color="#1f77b4", marker_line_color="black", marker_line_width=1)
         
