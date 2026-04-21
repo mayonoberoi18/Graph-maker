@@ -34,15 +34,16 @@ with col1:
     x_options = ["Days", "Months", "Time (hours)", "Subjects", "Match No.", 
                  "Age (years)", "Distance (km)", "Category"]
     x_index = x_options.index(st.session_state.x_val) if st.session_state.x_val in x_options else 3
-    x_label = st.text_input("X label", value=st.session_state.x_val)
+    x_label = st.text_input("X label", value=st.session_state.x_val, key="custom_x_in")
 
 with col2:
     st.markdown("**Y-Axis Label**")
     y_options = ["Marks", "Score", "Temperature (°C)", "Sales (₹)", "Height (cm)", 
                  "Runs Scored", "Speed (km/h)", "Price", "Count"]
     y_index = y_options.index(st.session_state.y_val) if st.session_state.y_val in y_options else 0
-    y_label = st.text_input("Y label", value=st.session_state.y_val)
+    y_label = st.text_input("Y label", value=st.session_state.y_val, key="custom_y_in")
 
+# Update labels in session state
 st.session_state.x_val = x_label
 st.session_state.y_val = y_label
 
@@ -88,21 +89,25 @@ with sample_cols[3]:
 
 # Data Editor
 st.subheader("Edit Your Data")
-# FIX: The key 'stable_editor' prevents the widget from resetting when adding new rows.
+st.info("👈 Add rows at the bottom. The graph will update when you click the button below.")
+
+# FIX: Using a static key 'main_editor' and NOT syncing to session_state 
+# immediately prevents the "first-time edit/new row" bug.
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True,
-    key="stable_editor"
+    key="main_editor"
 )
-st.session_state.data = edited_df
 
 # ====================== Generate Graph ======================
 st.divider()
 
 if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
-    df = st.session_state.data
+    # Save the edited data to session state only when generating
+    st.session_state.data = edited_df
+    df = edited_df.copy()
     
     if df.empty or len(df.columns) < 2:
         st.error("Please add data with at least two columns.")
@@ -110,45 +115,43 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
     
     x_col, y_col = df.columns[0], df.columns[1]
     
-    # Ensure numeric values for distribution-based plots
-    # We attempt to convert to numeric to handle cases where numbers are typed as strings
-    df_plot = df.copy()
-    df_plot[y_col] = pd.to_numeric(df_plot[y_col], errors='coerce')
-    is_numeric_y = not df_plot[y_col].isnull().all()
+    # Try to convert Y column to numeric for math-based charts
+    df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
+    is_numeric_y = not df[y_col].isnull().all()
 
     try:
         if "Line" in graph_choice:
-            fig = px.line(df_plot, x=x_col, y=y_col, markers=True)
+            fig = px.line(df, x=x_col, y=y_col, markers=True)
         elif "Bar" in graph_choice:
-            fig = px.bar(df_plot, x=x_col, y=y_col)
+            fig = px.bar(df, x=x_col, y=y_col)
         elif "Scatter" in graph_choice:
-            fig = px.scatter(df_plot, x=x_col, y=y_col)
+            fig = px.scatter(df, x=x_col, y=y_col)
         elif "Area" in graph_choice:
-            fig = px.area(df_plot, x=x_col, y=y_col)
+            fig = px.area(df, x=x_col, y=y_col)
         elif "Box" in graph_choice:
             if not is_numeric_y:
-                st.error(f"'{y_col}' must be numeric for a Box Plot.")
+                st.error(f"'{y_col}' must contain numbers for a Box Plot.")
                 st.stop()
-            fig = px.box(df_plot, y=y_col)
+            fig = px.box(df, y=y_col)
         elif "Histogram" in graph_choice:
             if not is_numeric_y:
-                st.error(f"'{y_col}' must be numeric for a Histogram.")
+                st.error(f"'{y_col}' must contain numbers for a Histogram.")
                 st.stop()
-            # IMPROVED HISTOGRAM: Connected bars (bargap=0) and continuous look
-            fig = px.histogram(df_plot, x=y_col, nbins=10)
-            fig.update_layout(bargap=0) # Removes gaps between bars
-            fig.update_traces(marker_line_color='white', marker_line_width=0.5)
+            # FIX: Continuous, side-by-side connected bars
+            fig = px.histogram(df, x=y_col, nbins=10)
+            fig.update_layout(bargap=0) # Removes space between bars
+            fig.update_traces(marker_line_color='white', marker_line_width=1)
 
         fig.update_layout(
             height=600,
             template="plotly_white",
-            xaxis_title=st.session_state.x_val,
-            yaxis_title="Frequency" if "Histogram" in graph_choice else st.session_state.y_val,
-            title=f"{graph_choice.split()[-1]} of {st.session_state.y_val}"
+            xaxis_title=x_label,
+            yaxis_title="Count/Frequency" if "Histogram" in graph_choice else y_label,
+            title=f"{graph_choice.split()[-1]} Analysis"
         )
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Could not generate graph. Please check your data. Error: {e}")
 
 st.caption("Made with ❤️ by Mayon Oberoi")
