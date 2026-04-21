@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 st.title("📊 Graph Maker")
-st.markdown("**Change Units • Edit Data • Make Graphs**  \n*By Mayon Oberoi • Illuminati*")
+st.markdown("**Change Units • Edit Data • Make Graphs** \n*By Mayon Oberoi • Illuminati*")
 
 # ====================== Session State Initialization ======================
 if 'x_val' not in st.session_state:
@@ -123,12 +123,13 @@ with sample_cols[3]:
 st.subheader("Edit Your Data")
 st.info("👈 Edit values directly below. Add/remove rows as needed.")
 
+# FIX: Using a static key 'main_editor' ensures edits are saved correctly on the first try
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True,
-    key=f"data_editor_{st.session_state.x_val}_{st.session_state.y_val}"
+    key="main_editor"
 )
 
 st.session_state.data = edited_df
@@ -174,9 +175,6 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
                 st.stop()
             fig = px.box(df, y=y_col, title=f"Box Plot of {y_col}")
         elif "Histogram" in graph_choice:
-            if not is_numeric_y:
-                st.error("Histogram requires numeric values in Y column")
-                st.stop()
             fig = px.histogram(df, x=y_col, nbins=20, title=f"Distribution of {y_col}")
             fig.update_traces(marker_color="#1f77b4", marker_line_color="black", marker_line_width=1)
         
@@ -186,8 +184,8 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
             title_font_size=28,
             title_x=0.5,
             template="plotly_white",
-            xaxis_title=x_col,
-            yaxis_title=y_col,
+            xaxis_title=x_label,
+            yaxis_title=y_label,
             margin=dict(t=80, b=60)
         )
         
