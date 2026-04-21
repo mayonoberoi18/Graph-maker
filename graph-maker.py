@@ -34,22 +34,18 @@ with col1:
     x_options = ["Days", "Months", "Time (hours)", "Subjects", "Match No.", 
                  "Age (years)", "Distance (km)", "Category"]
     x_index = x_options.index(st.session_state.x_val) if st.session_state.x_val in x_options else 3
-    x_sug = st.selectbox("Common X labels", x_options, index=x_index)
-    x_label = st.text_input("Or type custom X label", value=st.session_state.x_val)
+    x_label = st.text_input("X label", value=st.session_state.x_val)
 
 with col2:
     st.markdown("**Y-Axis Label**")
     y_options = ["Marks", "Score", "Temperature (°C)", "Sales (₹)", "Height (cm)", 
                  "Runs Scored", "Speed (km/h)", "Price", "Count"]
     y_index = y_options.index(st.session_state.y_val) if st.session_state.y_val in y_options else 0
-    y_sug = st.selectbox("Common Y labels", y_options, index=y_index)
-    y_label = st.text_input("Or type custom Y label", value=st.session_state.y_val)
+    y_label = st.text_input("Y label", value=st.session_state.y_val)
 
-# Update internal label state
 st.session_state.x_val = x_label
 st.session_state.y_val = y_label
 
-# Refresh button to rename columns
 if st.button("🔄 Apply New Axis Labels to Data", use_container_width=True):
     old_cols = list(st.session_state.data.columns)
     st.session_state.data = st.session_state.data.rename(columns={
@@ -92,16 +88,13 @@ with sample_cols[3]:
 
 # Data Editor
 st.subheader("Edit Your Data")
-st.info("👈 Add rows at the bottom. Use the 'Apply Axis Labels' button above if you change names.")
-
-# FIX: We use a static key AND we only save back to session_state if changes actually happen.
-# This prevents the "double entry" bug when adding new rows.
+# FIX: The key 'stable_editor' prevents the widget from resetting when adding new rows.
 edited_df = st.data_editor(
     st.session_state.data,
     num_rows="dynamic",
     use_container_width=True,
     hide_index=True,
-    key="editor_stable"
+    key="stable_editor"
 )
 st.session_state.data = edited_df
 
@@ -116,34 +109,42 @@ if st.button("🚀 Generate Graph", type="primary", use_container_width=True):
         st.stop()
     
     x_col, y_col = df.columns[0], df.columns[1]
-    is_numeric_y = pd.api.types.is_numeric_dtype(df[y_col])
+    
+    # Ensure numeric values for distribution-based plots
+    # We attempt to convert to numeric to handle cases where numbers are typed as strings
+    df_plot = df.copy()
+    df_plot[y_col] = pd.to_numeric(df_plot[y_col], errors='coerce')
+    is_numeric_y = not df_plot[y_col].isnull().all()
 
     try:
         if "Line" in graph_choice:
-            fig = px.line(df, x=x_col, y=y_col, markers=True)
+            fig = px.line(df_plot, x=x_col, y=y_col, markers=True)
         elif "Bar" in graph_choice:
-            fig = px.bar(df, x=x_col, y=y_col)
+            fig = px.bar(df_plot, x=x_col, y=y_col)
         elif "Scatter" in graph_choice:
-            fig = px.scatter(df, x=x_col, y=y_col)
+            fig = px.scatter(df_plot, x=x_col, y=y_col)
         elif "Area" in graph_choice:
-            fig = px.area(df, x=x_col, y=y_col)
+            fig = px.area(df_plot, x=x_col, y=y_col)
         elif "Box" in graph_choice:
             if not is_numeric_y:
                 st.error(f"'{y_col}' must be numeric for a Box Plot.")
                 st.stop()
-            fig = px.box(df, y=y_col)
+            fig = px.box(df_plot, y=y_col)
         elif "Histogram" in graph_choice:
             if not is_numeric_y:
                 st.error(f"'{y_col}' must be numeric for a Histogram.")
                 st.stop()
-            fig = px.histogram(df, x=y_col, nbins=20)
+            # IMPROVED HISTOGRAM: Connected bars (bargap=0) and continuous look
+            fig = px.histogram(df_plot, x=y_col, nbins=10)
+            fig.update_layout(bargap=0) # Removes gaps between bars
+            fig.update_traces(marker_line_color='white', marker_line_width=0.5)
 
         fig.update_layout(
             height=600,
             template="plotly_white",
             xaxis_title=st.session_state.x_val,
-            yaxis_title=st.session_state.y_val,
-            title=f"{st.session_state.y_val} vs {st.session_state.x_val}"
+            yaxis_title="Frequency" if "Histogram" in graph_choice else st.session_state.y_val,
+            title=f"{graph_choice.split()[-1]} of {st.session_state.y_val}"
         )
         st.plotly_chart(fig, use_container_width=True)
 
