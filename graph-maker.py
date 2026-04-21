@@ -11,8 +11,7 @@ st.set_page_config(
 )
 
 st.title("📊 Graph Maker")
-st.markdown("**Change Units • Edit Data • Make Graphs** 
-    \n*By Mayon Oberoi • Illuminati*")
+st.markdown("**Change Units • Edit Data • Make Graphs**\n*By Mayon Oberoi • Illuminati*")
 
 # ====================== Session State Initialization ======================
 if 'data' not in st.session_state:
